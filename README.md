@@ -1,114 +1,112 @@
 This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
 
-### Solution
-* First of all install redux to our project.
+### Combining Local-UI Statea and Redux
+* Get input of name and age ... "AddPerso.js"
+* through props.personAdded(personsState.name, ageState.age) we are sending values
 ```jsx
-npm install --save redux
-```
-* next create a store folder to add redux related actions and reducer files 
-* "actions.js"
-```jsx
-export const ADD_PERSON = 'ADD_PERSON';
-export const REMOVE_PERSON = 'REMOVE_PERSON';
-```
-* "reducer.js"
-```jsx
-import * as actionTypes from './actions';
+/// Using constant component ie using useSate....
+/// Please check the class based version below for your reference...
+import React, { useState } from 'react';
+import './AddPerson.css';
 
-const initialState = {
-    persons: []
-};
+const addPerson = (props) =>{
+    const [personsState, setPersonsName] = useState(
+            { name:""}
+    );
+    const [ageState, setPersonsAge] = useState(
+            {age:""}
+    );
 
-const reducer = ( state = initialState, action ) => {
-    switch ( action.type ) {
-        case actionTypes.ADD_PERSON:
-            const newPerson = {
-                id: Math.random(), // not really unique but good enough here!
-                name: 'Max',
-                age: Math.floor( Math.random() * 40 )
-            }
-            // here we are concating new person object and then returning the updated state
-            return {
-              // copy all properties... here it won't need but still later if you add more propeties like persons we need to copy all properties...
-                ...state,
-                persons: state.persons.concat( newPerson )
-            }
-
-        case actionTypes.REMOVE_PERSON:
-            // here we filter the particular id and then sent rest of the state to persons object.
-            return {
-                ...state,
-                persons: state.persons.filter(person => person.id !== action.personId)
-            }
+    const nameChangedHandler = (event) => {
+        setPersonsName( 
+            { name: event.target.value}
+        )
     }
-    return state;
-};
+    const ageChangedHandler = (event) => {
+        setPersonsAge( 
+            { age: event.target.value}
+        )
+    }
+    return (
+        <div className="AddPerson">
+            <input type="text" placeholder="Name" onChange={(e) => nameChangedHandler(e)} value={personsState.name}/>
+            <input type="number" placeholder="Age"  onChange={(e) => ageChangedHandler(e)} value={ageState.age}/>
+            <button onClick={() => props.personAdded(personsState.name, ageState.age)}>Add Person</button>
+        </div>
+    );
 
-export default reducer;
+}
+
+
+export default addPerson;
 ```
-* To connect react with redux we need react-redux package , It allow us to hook up our redux store to react application.
 ```jsx
-npm install --save react-redux
-```
-* "Index.js"
-```jsx
-//First import createStore and Provider from redux and react-redux respectively..
-import { createStore } from 'redux';
-import { Provider } from 'react-redux';
+///**** We can write the same above code in class based component - Alternate way ......
 
-import reducer from './store/reducer';
-
-// here we are creating store with our reducer file
-const store = createStore(reducer);
-// here we are wrapping our app component with redux provider and pass our store as param to Provider component.
-ReactDOM.render(<Provider store={store}><App /></Provider>, document.getElementById('root'));
-
-```
-
-* In your container file (Perosons.js) add redux logics.
-```jsx
 import React, { Component } from 'react';
-// import connect from react redux to conect mapStateToProps and mapDispatchToProps with the persons component.
-import { connect } from 'react-redux';
 
-import Person from '../components/Person/Person';
-import AddPerson from '../components/AddPerson/AddPerson';
-// import actionTypes form actions
-import * as actionTypes from '../store/actions';
+import './AddPerson.css';
 
-class Persons extends Component {
+class AddPerson extends Component {
+    state = {
+        name: '',
+        age: ''
+    }
+
+    nameChangedHandler = (event) => {
+        this.setState({name: event.target.value});
+    }
+
+    ageChangedHandler = (event) => {
+        this.setState({age: event.target.value});
+    }
+
     render () {
         return (
-            <div>
-                <AddPerson personAdded={this.props.onAddedPerson} />
-                {this.props.prs.map(person => (
-                    <Person 
-                        key={person.id}
-                        name={person.name} 
-                        age={person.age} 
-                        clicked={() => this.props.onRemovedPerson(person.id)}/>
-                ))}
+            <div className="AddPerson">
+                <input 
+                    type="text" 
+                    placeholder="Name" 
+                    onChange={this.nameChangedHandler}
+                    value={this.state.name} />
+                <input 
+                    type="number" 
+                    placeholder="Age"
+                    onChange={this.ageChangedHandler}
+                    value={this.state.age} />
+                <button onClick={() => this.props.personAdded(this.state.name, this.state.age)}>Add Person</button>
             </div>
         );
     }
 }
 
-// mapStateToProps and assign this.state.prs.map
-// here after can access all state with this.props.prs ***
+export default AddPerson;
+```
 
-const mapStateToProps = state => {
-    return {
-        prs: state.persons
-    };
-};
-//mapDispatchToProps and assin to onRemovedPerson and onAddedPerson
+
+* Then in Person.js we are passing personAdded to onAddedPerson
+```jsx
+<AddPerson personAdded={this.props.onAddedPerson} />
+
 const mapDispatchToProps = dispatch => {
     return {
-        onAddedPerson: () => dispatch({type: actionTypes.ADD_PERSON}),
+        onAddedPerson: (name, age) => dispatch({type: actionTypes.ADD_PERSON, personData:{name: name, age: age}}),
         onRemovedPerson: (id) => dispatch({type: actionTypes.REMOVE_PERSON, personId: id})
     }
 };
-// here we are connecting mapStateToProps and mapDispatchToProps to Persons component.
-//We will pass two pieces of information, state and action.
-export default connect(mapStateToProps, mapDispatchToProps)(Persons);
 ```
+* then in reducer.js
+```jsx
+case actionTypes.ADD_PERSON:
+      const newPerson = {
+          id: Math.random(), // not really unique but good enough here!
+          name: action.personData.name,
+          age: action.personData.age
+      }
+      return {
+          ...state,
+          persons: state.persons.concat( newPerson )
+      }
+```
+
+* Here we used local UI state to handle input and redux to handle created inputs broder part...
